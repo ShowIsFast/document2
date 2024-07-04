@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <!-- 页面meta -->
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>我的商城</title>
+    <meta name="description" content="mymall">
+    <meta name="keywords" content="mymall">
+    <meta content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" name="viewport">
+    <link rel="stylesheet" href="https://unpkg.com/element-ui/lib/theme-chalk/index.css">
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vue@2"></script>
+    <script src="https://unpkg.com/element-ui/lib/index.js"></script>
+    <!-- 引入样式 -->
+    <link rel="stylesheet" href="../css/theme-chalk.css">
+    <link rel="stylesheet" href="../css/login_style.css">
+    <!-- <link rel="stylesheet" href="./../static/css/theme-chalk.css">
+    <link rel="stylesheet" href="./../static/css/login_style.css"> -->
+    <style type="text/css">
+        html,
+        body,
+        #app,
+        .el-container {
+            width: 100%;
+            height: 100%;
+        }
+
+        .el-container__content {
+            height: calc(100% - 60px);
+        }
+
+        .el-main {
+            position: absolute;
+            top: 83px;
+            bottom: 0px;
+            left: 220px;
+            right: 10px;
+            padding: 0;
+        }
+    </style>
+</head>
+
+<body class="hold-transition skin-purple sidebar-mini">
+    <div id="app">
+        <el-container>
+            <el-header class="main-header" style="height:60px;">
+                <!-- 导航 -->
+                <nav class="navbar navbar-static-top" :class=''>
+                    <!-- Logo -->
+                    <a href="all-admin-index.html" class="logo" style="text-align:center">
+                        <span class="logo-lg" v-show='!isCollapse'><img src="img/Logo.png"></span>
+                    </a>
+                    <div class="right-menu">
+                        <el-dropdown class="avatar-container right-menu-item" trigger="click">
+                            <div class="avatar-wrapper">
+                                <img src="img/user2-160x160.jpg" class="user-avatar">
+                                {{loginName}}
+                            </div>
+                            <el-dropdown-menu slot="dropdown">
+                                <el-dropdown-item divided>
+                                    <span style="display:block;">修改密码</span>
+                                </el-dropdown-item>
+                                <el-dropdown-item divided>
+                                    <span style="display:block;" @click="exit()">退出</span>
+                                </el-dropdown-item>
+                            </el-dropdown-menu>
+                        </el-dropdown>
+                    </div>
+                    <!-- 导航 -->
+                    <div class="topbar-title">
+                        <el-row>
+                            <el-col :span="24">
+                                <el-menu class="el-menu-demo headNav" mode="horizontal"
+                                    :default-active="defaultActiveIndex">
+                                    <el-menu-item v-for="item in menuList" :index="item.path"
+                                        @click="handleSelect(item)"><i class="iconNav"
+                                            :class="item.icon"></i>{{item.title}}</el-menu-item>
+                                </el-menu>
+                            </el-col>
+                        </el-row>
+                    </div>
+                    <!-- end -->
+                </nav>
+                <!-- end -->
+            </el-header>
+            <el-container class="el-container__content">
+                <!-- 左侧菜单 -->
+                <el-aside :width="tabWidth+'px'" id="asieHeight">
+                    <el-menu :default-active="defaultActive" :collapse="isCollapse" :default-openeds="openeds"
+                        class="el-menu-vertical-demo" @select="handleSilderSelect">
+                        <sidebar-item v-for="data in data.children" :key="data.path" :item="data" />
+                    </el-menu>
+                </el-aside>
+                <!-- end -->
+                <!-- iframe导入对应的模块内容 -->
+                <el-container>
+                    <iframe name="right" id="iframepage" :src="linkUrl" style="width:100%;magrin:0 auto" marginwidth="0"
+                        marginheight="0" height="100%" frameborder="0" ranat="server"></iframe>
+                </el-container>
+                <!--  -->
+            </el-container>
+        </el-container>
+        <!-- 底部 -->
+        <!-- <el-footer>
+            <footer class="main-footer">
+                <div class="pull-right hidden-xs">
+                    <b>Version</b> 1.0
+                </div>
+                <strong>Copyright &copy; 2016-2026 <a href="http://www.mymall.cn">我的商城研究院</a>.</strong> All rights
+                reserved.
+            </footer>
+        </el-footer> -->
+        <!-- end -->
+    </div>
+</body>
+
+<script>
+    // 左侧菜单组件
+    Vue.component('sidebar-item', {
+        props: {
+            item: {
+                type: Object,
+                required: true
+            }
+        },
+        template: `
+        <div v-if="item.children">
+            <template v-if="item.children.length == 0">
+                <el-menu-item :index="item.path">
+                <i class="icon" :class="item.icon"></i>
+                <a :href="item.linkUrl" target="right">{{item.title}}</a>
+                </el-menu-item>
+            </template>
+            <template v-else :index="item.path">
+                <div slot="title" class="el-submenu__title">
+                    <i class="icon" :class="item.icon"></i>
+                    {{item.title}}
+                </div>
+
+                <template v-for="child in item.children">
+                    <sidebar-item
+                    v-if="child.children&&child.children.length>0"
+                    :item="child"
+                    :key="child.path"/>
+                    <el-menu-item v-else :key="child.path" :index="child.path" style='padding-left:58px'>
+                    <a :href="child.linkUrl" target="right">{{child.title}}</a>
+                    </el-menu-item>
+                </template>
+            </template>          
+        </div>`
+    })
+    new Vue({
+        el: '#app',
+        // router,
+        data() {
+            return {
+                visible: false,
+                isCollapse: false,
+                tabWidth: 180,
+                test1: 1,
+                intelval: null,
+                winfo: 'winfo',
+                data: [],
+                menuList: [],
+                defaultActiveIndex: "1",
+                defaultActive: '1',
+                openeds: [],
+                loginName: '',
+                linkUrl: 'home.html'
+            }
+        },
+        created() {
+            const linkUrl = sessionStorage.getItem('linkUrl')
+            const activeIndex = sessionStorage.getItem('activeIndex')
+            const silderMenu = sessionStorage.getItem('silderMenu')
+            const silderActive = sessionStorage.getItem('silderActive')
+            if (linkUrl !== null) this.linkUrl = linkUrl
+            if (linkUrl !== null) this.defaultActiveIndex = activeIndex
+            if (silderMenu !== null) this.data = JSON.parse(silderMenu)
+            if (silderActive !== null) this.defaultActive = silderActive
+            //加载菜单数据
+            axios.get('/menu/findMenu').then(response => {
+                console.log('response', response);
+                // 获取导航数据
+                this.menuList = response.data
+            })
+
+
+
+            //加载并显示当前登录名
+            axios.get('/login/name').then(response => {
+                this.loginName = response.data.name;
+            })
+
+        },
+        methods: {
+            handleSilderSelect(key) {
+                sessionStorage.setItem('silderActive', key)
+                this.data.children.forEach(element => {
+                    if (element.children.length) {
+                        element.children.forEach(v => {
+                            if (v.path === key) {
+                                sessionStorage.setItem('linkUrl', v.linkUrl)
+                            }
+                        })
+                    } else {
+                        if (element.path === key) {
+                                sessionStorage.setItem('linkUrl', element.linkUrl)
+                            }
+                    }
+                });
+            },
+            // 选择顶部导航菜单，联动左侧菜单
+            handleSelect(key) {
+                console.info("key:" + key);
+                if (!key.children.length) {
+                    this.linkUrl = key.linkUrl
+                    this.data = {}
+                } else {
+                    var data = []
+                    for (var i = 0; i < key.children.length; i++) {
+                        data.push(key.children[i].path)
+                        this.defaultActive = key.children[0].children[0].path
+                        console.log('this.defaultActive', this.defaultActive);
+                        if (!key.children[0].linkUrl) {
+                            this.linkUrl = key.children[0].children[0].linkUrl
+                        } else {
+                            this.linkUrl = key.children[0].linkUrl
+                        }
+                    }
+                    this.openeds = data
+                    this.data = key
+                }
+                sessionStorage.setItem('linkUrl', this.linkUrl)
+                sessionStorage.setItem('activeIndex', key.path)
+                sessionStorage.setItem('silderMenu', JSON.stringify(this.data))
+                sessionStorage.setItem('silderActive', this.defaultActive)
+            },
+            exit() {
+                axios.post('/logout').then(response => {
+                    location.href = 'login.html';
+                })
+            }
+        }
+    })
+
+    window.onload = windowHeight; //页面载入完毕执行函数
+    function windowHeight() {
+        var wd = 220;
+        var iframepage = document.getElementById("iframepage")
+        var asieHeight = document.getElementById("asieHeight")
+        iframepage.style.width = document.documentElement.clientWidth - wd + 'px'
+        asieHeight.style.height = document.documentElement.clientHeight + 'px'
+    }
+</script>
+
+</html>

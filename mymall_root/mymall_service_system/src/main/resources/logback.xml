@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <!-- %m输出的信息,%p日志级别,%t线程名,%d日期,%c类的全名,,,, -->
+    <appender name="stdout" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <charset>UTF-8</charset>
+            <pattern>%p (%file:%line\)- %m%n</pattern>
+        </encoder>
+    </appender>
+
+    <appender name="jsbb-service-vue" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <encoder>
+            <pattern>%msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <root level="info">
+        <appender-ref ref="stdout"/>
+        <appender-ref ref="jsbb-service-vue"/>
+    </root>
+
+
+</configuration>

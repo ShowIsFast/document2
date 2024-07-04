@@ -1,0 +1,63 @@
+package com.mymall.web.manager.controller.user;
+
+import com.mymall.common.web.entity.Result;
+import com.mymall.pojo.user.Cities;
+import com.mymall.contract.user.CitiesService;
+import com.mymall.pojo.entity.PageResult;
+import org.apache.dubbo.config.annotation.DubboReference;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.*;
+
+@RestController
+@RequestMapping("/cities")
+public class CitiesController {
+
+    @DubboReference
+    private CitiesService citiesService;
+
+    @GetMapping("/findAll")
+    public List<Cities> findAll(){
+        return citiesService.findAll();
+    }
+
+    @GetMapping("/findPage")
+    public PageResult<Cities> findPage(int page, int size){
+        return citiesService.findPage(page, size);
+    }
+
+    @PostMapping("/findList")
+    public List<Cities> findList(@RequestBody Map<String,Object> searchMap){
+        return citiesService.findList(searchMap);
+    }
+
+    @PostMapping("/findPage")
+    public PageResult<Cities> findPage(@RequestBody Map<String,Object> searchMap,int page, int size){
+        return  citiesService.findPage(searchMap,page,size);
+    }
+
+    @GetMapping("/findById")
+    public Cities findById(String cityid){
+        return citiesService.findById(cityid);
+    }
+
+
+    @PostMapping("/add")
+    public Result add(@RequestBody Cities cities){
+        citiesService.add(cities);
+        return new Result();
+    }
+
+    @PostMapping("/update")
+    public Result update(@RequestBody Cities cities){
+        citiesService.update(cities);
+        return new Result();
+    }
+
+    @GetMapping("/delete")
+    public Result delete(String cityid){
+        citiesService.delete(cityid);
+        return new Result();
+    }
+
+}

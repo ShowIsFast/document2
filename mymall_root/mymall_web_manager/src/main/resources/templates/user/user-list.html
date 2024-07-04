@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>用户列表</title>
+  <link rel="stylesheet" href="https://unpkg.com/element-ui/lib/theme-chalk/index.css">
+  <script src="https://cdn.jsdelivr.net/npm/vue@2/dist/vue.js"></script>
+  <script src="https://unpkg.com/element-ui/lib/index.js"></script>
+  <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+</head>
+
+<body>
+  <div id="app" style="padding: 20px;box-sizing: border-box;">
+    <div style="text-align: right;margin-bottom: 20px;">
+      <el-button type="primary" size="mini" @click="handleAdd">新增</el-button>
+    </div>
+    <el-table v-loading="loading" :data="usrList" stripe border style="width: 100%">
+      <el-table-column prop="id" label="ID" align="center" width="50">
+      </el-table-column>
+      <el-table-column prop="loginName" label="用户名" align="center">
+      </el-table-column>
+      <el-table-column label="操作" align="center" width="200">
+        <template slot-scope="scope">
+          <el-button size="mini" @click="handleEdit(scope.row)">编辑</el-button>
+          <el-popconfirm title="确定要删除该用户吗" @confirm="handleDelete(scope.row.id)">
+            <el-button size="mini" type="danger" slot="reference">删除</el-button>
+          </el-popconfirm>
+        </template>
+      </el-table-column>
+    </el-table>
+    <div style="text-align: right;margin-top: 20px;">
+      <el-pagination :current-page="current" layout="prev, pager, next" :total="total" @current-change="queryUsrList">
+      </el-pagination>
+    </div>
+    <el-dialog :title="title" :visible.sync="isVisible" width="500px" @close="handleClose">
+      <el-form ref="validateForm" :model="form" :rules="rules" style="width: 400px;">
+        <el-form-item label="用户名" label-width="80px" prop="usrname">
+          <el-input v-model="form.usrname" autocomplete="off"></el-input>
+        </el-form-item>
+        <el-form-item v-if="title === '新增'" label="密码" label-width="80px" prop="psd">
+          <el-input v-model="form.psd" autocomplete="off"></el-input>
+        </el-form-item>
+        <el-form-item label="角色" label-width="80px" prop="roleId">
+          <el-select v-model="form.roleId" placeholder="请选择角色">
+            <el-option v-for="item in roleTreeData" :key="item.id" :label="item.name" :value="item.id">
+            </el-option>
+          </el-select>
+        </el-form-item>
+      </el-form>
+      <div slot="footer" class="dialog-footer">
+        <el-button @click="isVisible = false">取 消</el-button>
+        <el-button type="primary" :loading="btnLoading" @click="save">确 定</el-button>
+      </div>
+    </el-dialog>
+  </div>
+  <script>
+    var app = new Vue({
+      el: '#app',
+      data() {
+        return {
+          usrList: [],
+          total: 0,
+          current: 1,
+          pageSize: 10,
+          loading: false,
+          title: '',
+          isVisible: false,
+          form: {
+            usrname: ''
+          },
+          rules: {
+            usrname: { required: true, message: '请输入角色名称', trigger: 'blur' },
+            psd: { required: true, message: '请输入密码', trigger: 'blur' },
+            roleId: { required: true, message: '请选择角色', trigger: 'blur' }
+          },
+          btnLoading: false,
+          roleTreeData: []
+        }
+      },
+      methods: {
+        // 查询用户列表
+        queryUsrList(p) {
+          if (p) this.current = p
+          this.loading = true
+          axios.get(`/admin/findPage?page=${this.current}&size=10`)
+            .then(response => {
+              const { data } = response
+              console.log('用户列表', data);
+              this.usrList = data.rows
+              this.total = data.total
+            })
+            .finally(_ => {
+              this.loading = false
+            })
+        },
+        // 查询所有角色
+        queryAllRoles() {
+          axios.get('/role/findAll')
+            .then(response => {
+              const { data } = response
+              console.log('所有角色', data);
+              this.roleTreeData = data
+            })
+        },
+        // 查询用户角色
+        queryUsrAuth(id) {
+          return new Promise((resolve, reject) => {
+            axios.get(`/admin/findRoleByAdminId?adminId=${id}`)
+              .then(response => {
+                const { data } = response
+                resolve(data)
+              })
+          })
+        },
+        // 用户新增
+        handleAdd() {
+          this.title = '新增'
+          this.isVisible = true
+        },
+        // 用户编辑
+        handleEdit(row) {
+          this.title = '编辑'
+          this.queryUsrAuth(row.id)
+            .then(response => {
+              this.form.usrname = row.loginName
+              this.form.psd = row.password
+              this.form.id = row.id
+              this.form.roleId = +response.roleId
+              this.$nextTick(_ => {
+                this.isVisible = true
+                console.log(this.form);
+              })
+            })
+        },
+        // 用户删除
+        handleDelete(id) {
+          axios.get(`/admin/delete?id=${id}`)
+            .then(response => {
+              const { data } = response
+              if (!data.code) {
+                this.$message.success(data.message)
+                this.queryUsrList()
+              } else {
+                this.$message.error(data.message)
+              }
+            })
+        },
+        // 保存
+        save() {
+          this.$refs['validateForm'].validate((valid) => {
+            if (valid) {
+              const id = this.title === '新增' ? '' : this.form.id
+              axios.get(`/admin/saveAdmin?adminId=${id}&passWord=${this.form.psd}&roleId=${this.form.roleId}&logName=${this.form.usrname}`)
+                .then(response => {
+                  const { data } = response
+                  console.log('save结果', data);
+                  if (!data.code) {
+                    this.$message.success(data.message)
+                    this.isVisible = false
+                    this.queryUsrList()
+                  } else {
+                    this.$message.error(data.message)
+                  }
+                })
+            }
+          })
+        },
+        handleClose() {
+          this.$refs['validateForm'].resetFields();
+          this.form = {
+            usrname: ''
+          }
+        }
+      },
+      created() {
+        this.queryUsrList()
+        this.queryAllRoles()
+      }
+    })
+  </script>
+</body>
+
+</html>

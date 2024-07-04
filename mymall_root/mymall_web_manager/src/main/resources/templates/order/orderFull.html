@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>order管理</title>
+    <meta content="IE=edge" http-equiv="X-UA-Compatible">
+    <!-- 引入样式 -->
+    <link href="https://unpkg.com/element-ui/lib/theme-chalk/index.css" rel="stylesheet">
+    <link href="../../plugins/font-awesome/css/font-awesome.min.css" rel="stylesheet">
+    <link href="../../css/style.css" rel="stylesheet">
+    <style rel="stylesheet">
+        .text {
+            font-size: 14px;
+        }
+
+        .item {
+            margin-bottom: 18px;
+        }
+
+        .clearfix:before,
+        .clearfix:after {
+            display: table;
+            content: "";
+        }
+
+        .clearfix:after {
+            clear: both
+        }
+
+        .box-card {
+            width: 480px;
+        }
+    </style>
+</head>
+<body>
+<div id="app">
+    <el-container>
+        <el-header>
+            <div class="content-header" style="height: 20%">
+                <h1>管理<small>order管理</small></h1>
+                <el-steps :active="orderStatus" finish-status="success" style="width: 80%;margin: 0 auto;">
+                    <el-step title="提交订单"></el-step>
+                    <el-step title="支付订单"></el-step>
+                    <el-step title="平台发货"></el-step>
+                    <el-step title="确认收货"></el-step>
+                    <el-step title="完成评价"></el-step>
+                </el-steps>
+            </div>
+
+        </el-header>
+
+        <el-main>
+            <div class="app-container" style="width: 80%;margin: 20px auto">
+                <div class="info">
+                    <el-card class="box-card" style="width: 100%">
+                        <div class="clearfix" slot="header">
+                            <span>
+                                   <i class="el-icon-collection-tag" style="background-color: #5e5e5e"></i>
+                                基本信息
+                            </span>
+                        </div>
+                        <div class="table">
+                            <el-table :data="order" border style="width: 100%">
+                                <el-table-column label="交易日期" prop="payTime" :formatter="formatDate"></el-table-column>
+                                <el-table-column label="订单编号" prop="id" width="200">
+                                </el-table-column>
+                                <el-table-column label="用户名称" prop="username" >
+                                </el-table-column>
+                                <el-table-column label="支付类型" >
+                                    <template slot-scope="scope">
+                                        <span v-if="scope.row.payType==1">在线支付</span>
+                                        <span v-else>货到支付</span>
+                                    </template>
+                                </el-table-column>
+                                <el-table-column label="订单来源" prop="sourceType" >
+                                    <template slot-scope="scope">
+                                        <span v-if="scope.row.sourceType==1">web</span>
+                                        <span v-else-if="scope.row.sourceType==2">app</span>
+                                        <span v-else-if="scope.row.sourceType==3">微信公众号</span>
+                                        <span v-else-if="scope.row.sourceType==4">微信小程序</span>
+                                        <span v-else>H5页面</span>
+                                    </template>
+                                </el-table-column>
+                                <el-table-column label="物流单号" prop="shippingCode">
+                                </el-table-column>
+                                <el-table-column label="订单状态" >
+                                    <template slot-scope="scope">
+                                        <span v-if="scope.row.orderStatus==0">待付款</span>
+                                        <span v-else-if="scope.row.orderStatus==1">代发货</span>
+                                        <span v-else-if="scope.row.orderStatus==2">已发货</span>
+                                        <span v-else-if="scope.row.orderStatus==3">已完成</span>
+                                        <span v-else>已关闭</span>
+                                    </template>
+                                </el-table-column>
+                            </el-table>
+                        </div>
+                    </el-card>
+                    <el-card class="box-card" style="width: 100%">
+                        <div class="clearfix" slot="header">
+                            <i class="el-icon-collection-tag"></i>
+                            <span>收货人信息</span>
+                        </div>
+                        <div class="table">
+                            <el-table :data="order" border fit="fit" style="width: 100%">
+                                <el-table-column label="收货人" prop="receiverContact" style="width: 25%"></el-table-column>
+                                <el-table-column label="收货人手机号" prop="receiverMobile" style="width: 25%"></el-table-column>
+                                <el-table-column label="收货人地址" prop="receiverAddress" style="width: 25%"></el-table-column>
+
+                            </el-table>
+                        </div>
+                    </el-card>
+
+                    <el-card class="box-card" style="width: 100%">
+                        <div class="clearfix" slot="header">
+                            <span>
+                                <i class="el-icon-collection-tag"></i>
+                                商品信息
+                            </span>
+                        </div>
+                        <div class="table">
+                            <el-table :data="orderItemAll" border style="width: 100%">
+                                <el-table-column label="商品名称" prop="name" ></el-table-column>
+                                <el-table-column label="商品图片" >
+                                    <template width="90" slot-scope="scope">
+                                        <img style="width:80px;height:80px;border:none;" :src="scope.row.image">
+                                    </template>
+                                </el-table-column>
+                                <el-table-column label="价格" prop="price" ></el-table-column>
+                                <el-table-column label="数量" prop="num" ></el-table-column>
+                                <el-table-column label="小计" prop="payMoney" ></el-table-column>
+                            </el-table>
+                        </div>
+                    </el-card>
+
+                    <el-card class="box-card" style="width: 100%">
+                        <div class="clearfix" slot="header">
+                            <i class="el-icon-collection-tag"></i>
+                            <span>费用信息</span>
+                        </div>
+                        <div class="table">
+                            <el-table :data="order" border style="width: 100%">
+                                <el-table-column label="商品合计" prop="goodsMoney" width="180"></el-table-column>
+                                <el-table-column label="运费" prop="postFee" width="180"></el-table-column>
+                                <el-table-column label="优惠金额" prop="preMoney"></el-table-column>
+                                <el-table-column label="订单总金额"prop="totalMoney"></el-table-column>
+                                <el-table-column label="应付总金额" prop="payMoney"></el-table-column>
+                            </el-table>
+                        </div>
+                    </el-card>
+                 <!--   <el-card class="box-card" style="width: 100%">
+                        <div class="clearfix" slot="header">
+                            <i class="el-icon-collection-tag"></i>
+                            <span>操作信息</span>
+                        </div>
+                        <div class="table">
+                            <el-table :data="order" border style="width: 100%">
+                                <el-table-column label="操作者" prop="transactionId" width="180"></el-table-column>
+                                <el-table-column label="操作时间" prop="orderId" width="180"></el-table-column>
+                                <el-table-column label="订单状态" prop="username"></el-table-column>
+                                <el-table-column label="应付状态" prop="username"></el-table-column>
+                                <el-table-column label="发货状态" prop="username"></el-table-column>
+                                <el-table-column label="用户账号" prop="username"></el-table-column>
+                                <el-table-column label="备注" prop="username"></el-table-column>
+                            </el-table>
+                        </div>
+                    </el-card>-->
+                </div>
+            </div>
+
+        </el-main>
+    </el-container>
+</div>
+<script src="/js/vue.js"></script>
+<script src="/js/axios.js"></script>
+<script src="/js/elementui.js"></script>
+<script src="/js/util.js"></script>
+<script>
+    new Vue({
+        el: '#app',
+        data() {
+            return {
+                order: [],
+                orderItem: [],
+                orderItemAll: [],
+                orderStatus: 0,
+                formVisible: false
+            }
+        },
+        created() {
+            this.fetchData();
+        },
+        methods: {
+            fetchData() {
+                let templateId = getQueryString("id")
+                console.log(templateId)
+                axios.get(`/order/orderFull?id=${templateId}`).then(response => {
+                    // this.tableData = response.data
+                    console.log(response.data)
+                    this.order.push(response.data.order)
+                    this.orderItem.push(response.data.orderItem)
+                    this.orderItemAll = response.data.orderItems
+                    this.orderStatus = Number(response.data.order.orderStatus)
+                    console.log(this.order);
+                });
+            }, formatDate(row, column) {
+                const date = new Date(row[column.property])
+                var times = date.getFullYear() + '-' +
+                    this.checkTime(date.getMonth()+1) + '-' +
+                    this.checkTime(date.getDate()) + ' ' +
+                    this.checkTime(date.getHours()) + ':' +
+                    this.checkTime(date.getMinutes())+ ':' +
+                    this.checkTime(date.getSeconds());
+                if (times  == "1970-01-01 08:00:00"){
+                    return null;
+                }else {
+                    return times;
+                }
+
+            },checkTime(i) {
+                if (i < 10) {
+                    i = "0" + i
+                }
+                return i;
+            }
+        }
+    })
+</script>
+</body>
+</html>

@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <title>我的商城</title>
+    <meta name="description" content="">
+    <meta name="keywords" content="">
+    <meta content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" name="viewport">
+
+    <link rel="stylesheet" href="../css/theme-chalk.css">
+    <link rel="stylesheet" href="../css/login_style.css">
+</head>
+
+<body class="mainBg">
+<div id="app" class="loginForm clear">
+    <form action="/login" method="POST">
+        <div class="loginMain">
+            <div class="loginlogo"></div>
+            <div class="loginCon">
+              <span class="el-form-item">
+                <span class="userIcon"></span>
+                <span class="el-input">
+                  <input  class="el-input__inner" name="username" placeholder="管理员账号"/>
+                </span>
+              </span>
+            </div>
+
+            <div class="loginCon">
+                <span class="el-form-item">
+                  <span class="pwdIcon"></span>
+                <span class="el-input">
+                  <input type="password" class="el-input__inner" name="password" placeholder="密码"/>
+                </span>
+              </span>
+            </div>
+
+            <div class="loginBtn">
+                <input type="submit" class="el-button el-button--primary" value="登录">
+            </div>
+        </div>
+    </form>
+
+</div>
+</body>
+
+<script>
+    window.onload = windowHeight; //页面载入完毕执行函数
+    function windowHeight() {
+        var asieHeight = document.getElementById("app")
+        asieHeight.style.height = document.documentElement.clientHeight + 'px'
+    }
+</script>
+</html>

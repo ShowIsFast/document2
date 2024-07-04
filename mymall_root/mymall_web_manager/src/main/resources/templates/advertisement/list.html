@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>广告列表</title>
+  <link rel="stylesheet" href="https://unpkg.com/element-ui/lib/theme-chalk/index.css">
+  <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+  <!-- production -->
+  <!-- <script src="https://cdn.jsdelivr.net/npm/vue@2"></script> -->
+  <!-- development -->
+  <script src="https://cdn.jsdelivr.net/npm/vue@2/dist/vue.js"></script>
+  <script src="https://unpkg.com/element-ui/lib/index.js"></script>
+  <style>
+    #app {
+      padding: 20px;
+      box-sizing: border-box;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="app">
+    <div style="text-align: right;margin-bottom: 20px;">
+      <el-button type="primary" size="mini" @click="handleAdd">新增</el-button>
+    </div>
+    <el-table v-loading="loading" :data="tableData" stripe border style="width: 100%">
+      <el-table-column prop="id" label="ID" align="center" width="50">
+      </el-table-column>
+      <el-table-column prop="name" label="名称" align="center">
+      </el-table-column>
+      <el-table-column label="图片" align="center">
+        <template slot-scope="{ row }">
+          <el-image style="width: 100px; height: 100px" :src="row.image" fit="contain" :preview-src-list="srcList">
+          </el-image>
+        </template>
+      </el-table-column>
+      <el-table-column label="link" align="center">
+        <template slot-scope="{ row }">
+          <el-link type="primary" :href="row.url" target="_blank">{{ row.url }}</el-link>
+        </template>
+      </el-table-column>
+      <el-table-column label="开始时间" align="center">
+        <template slot-scope="{ row }">
+          {{ changeDateFormat(row.startTime) }}
+        </template>
+      </el-table-column>
+      <el-table-column label="结束时间" align="center">
+        <template slot-scope="{ row }">
+          {{ changeDateFormat(row.endTime) }}
+        </template>
+      </el-table-column>
+      <el-table-column label="状态" align="center" width="80">
+        <template slot-scope="{ row }">
+          <el-switch v-model="row.status" active-value="1" :inactive-value="0" active-color="#13ce66"
+            inactive-color="#ff4949" @change="handleChange(row)">
+          </el-switch>
+        </template>
+      </el-table-column>
+      <el-table-column prop="remarks" label="备注" align="center">
+        <template slot-scope="{ row }">
+          {{ row.remarks ? row.remarks : '-' }}
+        </template>
+      </el-table-column>
+      <el-table-column label="操作" align="center">
+        <template slot-scope="scope">
+          <el-button size="mini" @click="handleEdit(scope.row)">编辑</el-button>
+          <el-button size="mini" type="danger" @click="handleDelete(scope.row.id)">删除</el-button>
+        </template>
+      </el-table-column>
+    </el-table>
+    <div style="text-align: right;margin-top: 20px;">
+      <el-pagination :current-page="current" layout="prev, pager, next" :total="total"
+        @current-change="hanldeCurrentChange">
+      </el-pagination>
+    </div>
+    <el-dialog :title="title" :visible.sync="isVisible" width="500px" @close="handleClose">
+      <el-form ref="validateForm" :model="form" :rules="rules" style="width: 400px;">
+        <el-form-item label="广告名称" label-width="80px" prop="name">
+          <el-input v-model="form.name" autocomplete="off"></el-input>
+        </el-form-item>
+        <el-form-item label="广告图片" label-width="80px" prop="image">
+          <el-upload :before-upload="beforeAvatarUpload" :on-success="handleAvatarSuccess" :show-file-list="false"
+            action="/upload/oss" class="avatar-uploader">
+            <el-button type="primary" size="mini">点击上传</el-button>
+          </el-upload>
+          <el-image v-if="form.image" style="width: 150px; height: 150px" :src="form.image" fit="contain">
+          </el-image>
+        </el-form-item>
+        <el-form-item label="广告链接" label-width="80px" prop="url">
+          <el-input v-model="form.url" autocomplete="off"></el-input>
+        </el-form-item>
+        <el-form-item label="开始时间" label-width="80px" prop="startTime">
+          <el-date-picker v-model="form.startTime" type="datetime" placeholder="选择开始时间">
+          </el-date-picker>
+        </el-form-item>
+        <el-form-item label="结束时间" label-width="80px" prop="endTime">
+          <el-date-picker v-model="form.endTime" type="datetime" placeholder="选择结束时间">
+          </el-date-picker>
+        </el-form-item>
+        <el-form-item label="备注" label-width="80px" prop="remarks">
+          <el-input v-model="form.remarks" type="textarea" :autosize="{ minRows: 2, maxRows: 4}" placeholder="请输入备注">
+          </el-input>
+        </el-form-item>
+      </el-form>
+      <div slot="footer" class="dialog-footer">
+        <el-button @click="isVisible = false">取 消</el-button>
+        <el-button type="primary" :loading="btnLoading" @click="save">确 定</el-button>
+      </div>
+    </el-dialog>
+  </div>
+  <script>
+    var app = new Vue({
+      el: '#app',
+      data() {
+        return {
+          tableData: [],
+          current: 1,
+          pageSize: 10,
+          total: 0,
+          loading: false,
+          title: '新增',
+          isVisible: false,
+          form: {},
+          rules: {
+            name: { required: true, message: '请输入广告名称', trigger: 'blur' },
+            url: { required: true, message: '请输入广告链接', trigger: 'blur' },
+            image: { required: true, message: '请上传广告图片', trigger: 'blur' },
+            startTime: { required: true, message: '请选择广告开始时间', trigger: 'blur' },
+            endTime: { required: true, message: '请选择广告结束时间', trigger: 'blur' }
+          },
+          btnLoading: false
+        }
+      },
+      computed: {
+        srcList() {
+          return this.tableData.map(v => v.image)
+        }
+      },
+      methods: {
+        // 查询列表
+        queryAdvertisementList() {
+          axios.get(`/ad/findPage?page=${this.current}&size=${this.pageSize}`)
+            .then(response => {
+              console.log('广告列表', response.data);
+              const { data } = response
+              this.total = data.total
+              this.tableData = data.rows
+            })
+        },
+        // 格式化 UTC 时间
+        changeDateFormat(date) {
+          var date = new Date(date);
+          var month = date.getMonth() + 1 < 10 ? "0" + (date.getMonth() + 1) : date.getMonth() + 1;
+          var currentDate = date.getDate() < 10 ? "0" + date.getDate() : date.getDate();
+          var hour = date.getHours() < 10 ? "0" + date.getHours() : date.getHours();
+          var min = date.getMinutes() < 10 ? "0" + date.getMinutes() : date.getMinutes();
+          var sec = date.getSeconds() < 10 ? "0" + date.getSeconds() : date.getSeconds();
+          return date.getFullYear() + "-" + month + "-" + currentDate + " " + hour + ":" + min + ":" + sec;
+        },
+        // 新增
+        handleAdd() {
+          this.title = '新增'
+          this.isVisible = true
+        },
+        // 编辑
+        handleEdit(data) {
+          this.title = '编辑'
+          this.form = data
+          this.isVisible = true
+        },
+        // 删除
+        handleDelete(id) {
+          this.loading = true
+          axios.get(`/ad/delete?id=${id}`)
+            .then(response => {
+              console.log('删除', response);
+              const { code, message } = response.data
+              if (code === 0) {
+                this.$message.success(message);
+                this.queryAdvertisementList();
+              }
+            })
+            .finally(_ => {
+              this.loading = false
+            })
+        },
+        // 状态改变
+        handleChange(row) {
+          console.log('row', row);
+          this.loading = true
+          const { id, status } = row
+          axios.get(`/ad/upStatus?id=${id}&status=${status}`)
+            .then(response => {
+              console.log('状态改变', response.data);
+              const { code, message } = response.data;
+              if (code === 0) {
+                this.$message.success(message);
+                this.queryAdvertisementList();
+              }
+            })
+            .finally(_ => {
+              this.loading = false
+            })
+
+        },
+        save() {
+          this.$refs['validateForm'].validate((valid) => {
+            if (valid) {
+              if (this.title === '新增') {
+                this.btnLoading = true
+                const form = {
+                  ...this.form,
+                  position: 'web_index_lb',
+                  status: '1'
+                }
+                axios.post(`/ad/add`, JSON.stringify(form), { headers: { 'Content-Type': 'application/json' }})
+                  .then(response => {
+                    const { code, message } = response.data;
+                    if (code === 0) {
+                      this.$message.success(message);
+                      this.isVisible = false
+                      this.queryAdvertisementList();
+                    }
+                  })
+                  .finally(_ => {
+                    this.btnLoading = false
+                  })
+              } else {
+                this.btnLoading = true
+                axios.post(`/ad/update`, JSON.stringify(this.form), { headers: { 'Content-Type': 'application/json' } })
+                  .then(response => {
+                    const { code, message } = response.data;
+                    if (code === 0) {
+                      this.$message.success(message);
+                      this.isVisible = false
+                      this.queryAdvertisementList();
+                    }
+                  })
+                  .finally(_ => {
+                    this.btnLoading = false
+                  })
+              }
+            } else {
+              console.log('error submit!!');
+              return false;
+            }
+          });
+        },
+        hanldeCurrentChange(cur) {
+          this.current = cur
+          this.queryAdvertisementList()
+        },
+        beforeAvatarUpload(file) {
+          const isJPG = file.type === 'image/jpeg';
+          const isLt2M = file.size / 1024 / 1024 < 2;
+
+          if (!isJPG) {
+            this.$message.error('上传头像图片只能是 JPG 格式!');
+          }
+          if (!isLt2M) {
+            this.$message.error('上传头像图片大小不能超过 2MB!');
+          }
+          return isJPG && isLt2M;
+        },
+        handleAvatarSuccess(res, file) {
+          // this.form.image = file.response;
+          this.$set(this.form, 'image', file.response)
+        },
+        handleClose() {
+          this.form = {}
+          this.$refs['validateForm'].resetFields();
+        }
+      },
+      created() {
+        this.queryAdvertisementList()
+      }
+    })
+  </script>
+</body>
+
+</html>

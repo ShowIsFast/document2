@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>秒杀管理</title>
+    <meta content="IE=edge" http-equiv="X-UA-Compatible">
+    <!-- 引入样式 -->
+    <link href="https://unpkg.com/element-ui/lib/theme-chalk/index.css" rel="stylesheet">
+    <link href="../../plugins/font-awesome/css/font-awesome.min.css" rel="stylesheet">
+    <link href="../../css/style.css" rel="stylesheet">
+
+    <!-- 上传图片框样式，不使用上传组件可以删除此样式 -->
+    <style>
+        .avatar-uploader .el-upload {
+            border: 1px dashed #d9d9d9;
+            border-radius: 6px;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .avatar-uploader .el-upload:hover {
+            border-color: #409EFF;
+        }
+
+        .avatar-uploader-icon {
+            font-size: 28px;
+            color: #8c939d;
+            width: 150px;
+            height: 70px;
+            line-height: 150px;
+            text-align: center;
+        }
+
+        .avatar {
+            width: 150px;
+            height: 70px;
+            display: block;
+        }
+    </style>
+</head>
+
+<body class="hold-transition">
+    <div id="app">
+
+        <div class="content-header">
+            <h1>秒杀活动列表</h1>
+            <el-breadcrumb class="breadcrumb" separator-class="el-icon-arrow-right">
+                <el-breadcrumb-item :to="{ path: '/' }">首页</el-breadcrumb-item>
+                <el-breadcrumb-item>管理</el-breadcrumb-item>
+                <el-breadcrumb-item>秒杀管理</el-breadcrumb-item>
+            </el-breadcrumb>
+        </div>
+
+        <div class="app-container">
+            <div class="box">
+                <div class="filter-container">
+                    <!--查询表单-->
+                    <el-form :inline="true">
+                        <el-form-item label="spu_ID">
+                            <el-input class="filter-item" placeholder="spu_ID" v-model="searchMap.goodsId"></el-input>
+                        </el-form-item>
+                        <el-form-item label="sku_ID">
+                            <el-input class="filter-item" placeholder="sku_ID" v-model="searchMap.itemId"></el-input>
+                        </el-form-item>
+                        <el-form-item label="审核状态">
+                            <el-input class="filter-item" placeholder="审核状态" v-model="searchMap.status"></el-input>
+                        </el-form-item>
+
+                        <el-button @click="fetchData()" class="dalfBut">查询</el-button>
+                        <el-button @click="formVisible=true;pojo={}" class="butT" type="primary">新增</el-button>
+                    </el-form>
+                </div>
+
+                <el-table :data="tableData" border style="width: 100%">
+                    <el-table-column label="主键" prop="id" width="80"></el-table-column>
+                    <el-table-column label="spu_ID" prop="goodsId" width="80"></el-table-column>
+                    <el-table-column label="sku_ID" prop="itemId" width="150"></el-table-column>
+                    <el-table-column label="标题" prop="title" width="150"></el-table-column>
+                    <!--             <el-table-column label="图片"  width="180">
+                    <template slot-scope="scope">
+                        <img width="100px" height="50px" :src="scope.row.smallPic">
+                    </template>
+                </el-table-column>-->
+                    <el-table-column label="原价格" prop="price" width="80"></el-table-column>
+                    <el-table-column label="秒杀价格" prop="costPrice" width="80"></el-table-column>
+                    <el-table-column label="添加日期" prop="createTime" width="170" :formatter="formatDate">
+                    </el-table-column>
+                    <!--<el-table-column label="审核日期" prop="checkTime" width="170" :formatter="formatDate"></el-table-column>-->
+                    <el-table-column label="审核状态" width="80">
+                        <template slot-scope="scope">
+                            <span v-if="scope.row.status==0">待审核</span>
+                            <span v-else-if="scope.row.status==1">审核通过</span>
+                            <span v-else-if="scope.row.status==2">审核未通过</span>
+                            <span v-else>已关闭</span>
+                        </template>
+                    </el-table-column>
+                    <el-table-column label="开始时间" prop="startTime" width="170" :formatter="formatDate">
+                    </el-table-column>
+                    <el-table-column label="结束时间" prop="endTime" width="170" :formatter="formatDate"></el-table-column>
+                    <el-table-column label="秒杀商品数" prop="num" width="80"></el-table-column>
+                    <el-table-column label="剩余库存数" prop="stockCount" width="80"></el-table-column>
+                    <el-table-column label="描述" prop="introduction" width="80"></el-table-column>
+
+                    <el-table-column label="操作" width="150">
+                        <template slot-scope="scope">
+                            <el-button @click="edit(scope.row.id)" size="mini" type="primary">修改</el-button>
+                            <el-button @click="dele(scope.row.id)" size="mini" type="danger">删除</el-button>
+                        </template>
+                    </el-table-column>
+                </el-table>
+                <div class="pagination-container">
+                    <el-pagination :current-page.sync="currentPage" :page-size="size" :page-sizes="[10, 20, 30, 40]"
+                        :total="total" @current-change="fetchData" @size-change="fetchData" class="pagiantion"
+                        layout="total, sizes, prev, pager, next, jumper">
+                    </el-pagination>
+                </div>
+                <div class="add-form">
+                    <!--弹出窗口-->
+                    <el-dialog :visible.sync="formVisible" title="编辑">
+                        <el-form label-width="80px">
+                            <el-form-item label="spu_ID">
+                                <el-input v-model="pojo.goodsId"></el-input>
+                            </el-form-item>
+                            <el-form-item label="sku_ID">
+                                <el-input v-model="pojo.itemId"></el-input>
+                            </el-form-item>
+                            <el-form-item label="标题">
+                                <el-input v-model="pojo.title"></el-input>
+                            </el-form-item>
+                            <el-form-item label="原价格">
+                                <el-input v-model="pojo.price"></el-input>
+                            </el-form-item>
+                            <el-form-item label="秒杀价格">
+                                <el-input v-model="pojo.costPrice"></el-input>
+                            </el-form-item>
+                            <el-form-item label="开始时间">
+                                <el-date-picker v-model="pojo.startTime" type="datetime" placeholder="选择日期时间"
+                                    format="yyyy-MM-dd HH:mm:ss" value-format="yyyy-MM-dd HH:mm:ss"
+                                    default-time="00:00:00" />
+                                <!--                            <el-input v-model="pojo.startTime" :formatter="formatDate"></el-input>-->
+                            </el-form-item>
+                            <el-form-item label="结束时间">
+                                <el-date-picker v-model="pojo.endTime" type="datetime" placeholder="选择日期时间"
+                                    format="yyyy-MM-dd HH:mm:ss" value-format="yyyy-MM-dd HH:mm:ss"
+                                    default-time="00:00:00" />
+                                <!--<el-input v-model="pojo.endTime" :formatter="formatDate"></el-input>-->
+                            </el-form-item>
+                            <el-form-item label="秒杀商品数">
+                                <el-input v-model="pojo.num"></el-input>
+                            </el-form-item>
+                            <el-form-item label="剩余库存数">
+                                <el-input v-model="pojo.stockCount"></el-input>
+                            </el-form-item>
+                            <el-form-item label="描述">
+                                <el-input v-model="pojo.introduction"></el-input>
+                            </el-form-item>
+
+                            <el-form-item>
+                                <el-button @click="save()" type="primary">保存</el-button>
+                                <el-button @click="formVisible = false">关闭</el-button>
+                            </el-form-item>
+                        </el-form>
+                    </el-dialog>
+                </div>
+
+            </div>
+        </div>
+
+
+    </div>
+</body>
+<script src="../../js/vue.js"></script>
+<script src="../../js/axios.js"></script>
+<script src="../../js/elementui.js"></script>
+<script>
+    new Vue({
+        el: '#app',
+        data() {
+            return {
+                tableData: [],
+                currentPage: 1,
+                total: 10,
+                size: 10,
+                searchMap: {},
+                pojo: {},
+                formVisible: false,
+                imageUrl: ''
+            }
+        },
+        created() {
+            this.fetchData();
+        },
+        methods: {
+            fetchData() {
+                axios.post(`/seckill_goods/findPage?page=${this.currentPage}&size=${this.size}`, this.searchMap).then(response => {
+                    this.tableData = response.data.rows;
+                    this.total = response.data.total;
+                });
+            },
+            save() {
+                // this.pojo.image= this.imageUrl; //如页面有图片上传功能放开注释
+                var start_time = new Date(this.pojo.startTime);
+                this.pojo.startTime = start_time;
+                var end_time = new Date(this.pojo.endTime);
+                this.pojo.endTime = end_time;
+                axios.post(`/seckill_goods/${this.pojo.id == null ? 'add' : 'update'}`, this.pojo).then(response => {
+                    this.fetchData(); //刷新列表
+                    this.formVisible = false;//关闭窗口
+                });
+            },
+            edit(id) {
+                this.formVisible = true // 打开窗口
+                // 调用查询
+                axios.get(`/seckill_goods/findById?id=${id}`).then(response => {
+                    this.pojo = response.data;
+                    // this.imageUrl=this.pojo.image //显示图片  如页面有图片上传功能放开注释
+                })
+            },
+            dele(id) {
+                this.$confirm('确定要删除此记录吗?', '提示', {
+                    confirmButtonText: '确定',
+                    cancelButtonText: '取消',
+                    type: 'warning'
+                }).then(() => {
+                    axios.get(`/seckill_goods/delete?id=${id}`).then(response => {
+                        this.fetchData(); //刷新列表
+                    })
+                })
+            }, formatDate(row, column) {
+                const date = new Date(row[column.property])
+                var times = date.getFullYear() + '-' +
+                    this.checkTime(date.getMonth() + 1) + '-' +
+                    this.checkTime(date.getDate()) + ' ' +
+                    this.checkTime(date.getHours()) + ':' +
+                    this.checkTime(date.getMinutes()) + ':' +
+                    this.checkTime(date.getSeconds());
+                if (times == "1970-01-01 08:00:00") {
+                    return null;
+                } else {
+                    return times;
+                }
+
+            }, checkTime(i) {
+                if (i < 10) {
+                    i = "0" + i
+                }
+                return i;
+            }
+            /*      ,pickerOptionsStart: {
+                      disabledDate: time => {
+                          if (this.listQuery.endDate) {
+                              return time.getTime() >new Date(this.listQuery.endDate).getTime()
+                          }
+                      }
+                  },
+                  pickerOptionsEnd: {
+                      disabledDate: time => {
+                          if (this.listQuery.startDate) {
+                              return time.getTime() <new Date(this.listQuery.startDate).getTime()
+                          }
+                      }
+                  }*/
+        }
+    })
+</script>
+
+</html>
